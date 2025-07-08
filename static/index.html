@@ -89,7 +89,7 @@
       } else if (ev.action === "MERGE") {
         msg = `<b>${ev.author}</b> merged branch <b>${ev.from_branch}</b> to <b>${ev.to_branch}</b>`;
       }
-      const time = new Date(ev.timestamp).toLocaleString('en-GB', { timeZone: 'UTC', hour12: true }) + ' UTC';
+      const time = new Date(ev.timestamp).toLocaleString('en-GB', { hour12: true });
       return `
         <div class="event">
           ${getIcon(ev.action)}
