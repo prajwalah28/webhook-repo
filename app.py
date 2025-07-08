@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from pymongo import MongoClient
-from datetime import datetime
+from datetime import datetime, timezone
 import os
 from dotenv import load_dotenv
 from flask import send_from_directory
@@ -29,18 +29,26 @@ def webhook():
             "action": "PUSH",
             "from_branch": None,
             "to_branch": payload['ref'].split('/')[-1],
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.utcnow().replace(tzinfo=timezone.utc).isoformat().replace('+00:00', 'Z')
         }
     elif event == "pull_request":
         action = payload['action']
         if action in ["opened", "closed"]:
+            # Get the correct timestamp and ensure it's in ISO 8601 UTC with 'Z'
+            if action == "opened":
+                ts = payload['pull_request']['created_at']
+            else:
+                ts = payload['pull_request']['merged_at']
+            # If ts is not None, ensure it ends with 'Z'
+            if ts and not ts.endswith('Z'):
+                ts = ts + 'Z'
             doc = {
                 "request_id": str(payload['pull_request']['id']),
                 "author": payload['pull_request']['user']['login'],
                 "action": "PULL_REQUEST" if action == "opened" else "MERGE",
                 "from_branch": payload['pull_request']['head']['ref'],
                 "to_branch": payload['pull_request']['base']['ref'],
-                "timestamp": payload['pull_request']['created_at'] if action == "opened" else payload['pull_request']['merged_at']
+                "timestamp": ts
             }
     if doc:
         collection.insert_one(doc)
